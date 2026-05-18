@@ -481,7 +481,7 @@ const typeLabel = {easy:'Suave', tempo:'Ritmo', long:'Largo', rest:'Descanso', s
 
 // ─── ANTHROPIC ───────────────────────────────────────────────────────────────
 async function askCoach(system, user) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetch('https:trail-coach.markestebancosta.workers.dev' + '/ai', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
