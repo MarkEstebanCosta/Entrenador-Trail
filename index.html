@@ -479,18 +479,23 @@ const intensityOf = s => s > 100 ? {label:'Alta', color:'#FF6F3C'} : s > 50 ? {l
 const typeColor = {easy:'#5ECB8A', tempo:'#F5C842', long:'#FF6F3C', rest:'#444', strength:'#9B7FFF'};
 const typeLabel = {easy:'Suave', tempo:'Ritmo', long:'Largo', rest:'Descanso', strength:'Fuerza'};
 
-// ─── ANTHROPIC ───────────────────────────────────────────────────────────────
+// ─── AI via Cloudflare Worker ────────────────────────────────────────────────
 async function askCoach(system, user) {
-  const r = await fetch('https:trail-coach.markestebancosta.workers.dev' + '/ai', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      model:'claude-sonnet-4-20250514', max_tokens:1000,
-      system, messages:[{role:'user', content:user}]
-    })
-  });
-  const d = await r.json();
-  return d.content?.map(b=>b.text||'').join('\n') || 'Sin respuesta.';
+  try {
+    const r = await fetch(WORKER_URL + '/ai', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system,
+        messages: [{ role: 'user', content: user }],
+      }),
+    });
+    const d = await r.json();
+    if (d.error) return '⚠️ Error del coach: ' + d.error;
+    return d.text || 'Sin respuesta.';
+  } catch (e) {
+    return '⚠️ No se pudo conectar con el coach. Comprueba tu conexión.';
+  }
 }
 
 function buildSystem() {
@@ -599,7 +604,7 @@ async function handleOAuthCallback() {
   // Intercambiar código por token real via Cloudflare Worker
   state.loading = true; render();
   try {
-    const res  = await fetch(WORKER_URL, {
+    const res  = await fetch(WORKER_URL + '/strava', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ code }),
