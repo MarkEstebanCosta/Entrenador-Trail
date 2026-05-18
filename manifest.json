@@ -1,0 +1,27 @@
+{
+  "name": "Trail Coach AI",
+  "short_name": "TrailCoach",
+  "description": "Tu entrenador personal de trail running con IA y Strava",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0D0D0D",
+  "theme_color": "#FF6F3C",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-57.png",  "sizes": "57x57",   "type": "image/png" },
+    { "src": "icons/icon-60.png",  "sizes": "60x60",   "type": "image/png" },
+    { "src": "icons/icon-72.png",  "sizes": "72x72",   "type": "image/png" },
+    { "src": "icons/icon-76.png",  "sizes": "76x76",   "type": "image/png" },
+    { "src": "icons/icon-114.png", "sizes": "114x114", "type": "image/png" },
+    { "src": "icons/icon-120.png", "sizes": "120x120", "type": "image/png" },
+    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["health", "fitness", "sports"],
+  "screenshots": []
+}

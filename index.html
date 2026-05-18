@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+  <title>Trail Coach AI</title>
+
+  <!-- PWA + iOS meta -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="TrailCoach"/>
+  <meta name="theme-color" content="#FF6F3C"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+
+  <!-- Apple touch icons -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png"/>
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png"/>
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png"/>
+  <link rel="icon" type="image/png" href="icons/favicon.png"/>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg: #0D0D0D;
+      --bg2: #141414;
+      --bg3: #1C1C1C;
+      --border: rgba(255,255,255,0.07);
+      --text: #F0EDE8;
+      --muted: #666;
+      --faint: #2A2A2A;
+      --orange: #FF6F3C;
+      --red: #E84545;
+      --green: #5ECB8A;
+      --yellow: #F5C842;
+      --purple: #9B7FFF;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-top);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    /* ── HEADER ── */
+    .header {
+      flex-shrink: 0;
+      padding: 14px 20px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(13,13,13,0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo-icon { font-size: 20px; }
+    .logo-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px; letter-spacing: 0.1em;
+      color: var(--orange);
+    }
+    .athlete-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--faint); border-radius: 20px;
+      padding: 5px 10px 5px 5px;
+    }
+    .avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+    .athlete-name { font-size: 12px; color: #999; font-weight: 500; }
+    .demo-badge {
+      font-size: 9px; background: #222; color: #555;
+      padding: 2px 6px; border-radius: 10px; margin-left: 4px;
+    }
+
+    /* ── TAB BAR ── */
+    .tabbar {
+      flex-shrink: 0;
+      display: flex;
+      background: rgba(13,13,13,0.97);
+      border-top: 1px solid var(--border);
+      padding-bottom: var(--safe-bot);
+    }
+    .tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 10px 4px 6px;
+      cursor: pointer; border: none; background: none;
+      color: #444; font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+      gap: 3px;
+    }
+    .tab.active { color: var(--orange); }
+    .tab-icon { font-size: 20px; }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+    .page {
+      padding: 16px 16px 24px;
+      animation: fadeUp 0.25s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 11px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 10px; margin-top: 20px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── STAT ROW ── */
+    .stat-row {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 8px; margin-bottom: 8px;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px;
+    }
+    .stat-card.accent {
+      background: rgba(255,111,60,0.08);
+      border-color: rgba(255,111,60,0.25);
+    }
+    .stat-label {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px;
+    }
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px; letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    .stat-card.accent .stat-value { color: var(--orange); }
+    .stat-unit { font-size: 12px; color: var(--muted); margin-left: 3px; }
+
+    /* ── ACTIVITY CARD ── */
+    .act-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 13px 14px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-user-select: none;
+    }
+    .act-card:active { background: rgba(255,111,60,0.07); transform: scale(0.99); }
+    .act-emoji {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(255,111,60,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .act-info { flex: 1; min-width: 0; }
+    .act-name {
+      font-weight: 600; font-size: 14px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .act-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .intensity-badge {
+      font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 20px;
+      flex-shrink: 0;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: flex-end;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    .modal {
+      background: var(--bg2);
+      border-radius: 22px 22px 0 0;
+      padding: 20px 18px;
+      padding-bottom: calc(20px + var(--safe-bot));
+      width: 100%; max-height: 82vh;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity:0; }
+      to   { transform: translateY(0); opacity:1; }
+    }
+    .modal-handle {
+      width: 36px; height: 4px; background: #333;
+      border-radius: 2px; margin: 0 auto 18px;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+    .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .modal-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 7px; margin-bottom: 16px;
+    }
+    .mini-stat {
+      background: var(--bg3); border-radius: 10px; padding: 10px 8px; text-align: center;
+    }
+    .mini-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .mini-stat-val { font-size: 15px; font-weight: 700; margin-top: 3px; color: var(--text); }
+    .analysis-box {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+      font-size: 13px; line-height: 1.75; color: #B8B0A8;
+      white-space: pre-wrap;
+    }
+
+    /* ── PLAN ── */
+    .plan-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 60px 20px; text-align: center;
+    }
+    .plan-empty-icon { font-size: 50px; margin-bottom: 16px; }
+    .plan-empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .plan-empty-sub { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 280px; }
+    .plan-summary {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .plan-summary-title { font-size: 17px; font-weight: 700; }
+    .plan-summary-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .day-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 13px 14px;
+      display: flex; gap: 12px; margin-bottom: 8px; align-items: flex-start;
+    }
+    .day-left { text-align: center; min-width: 38px; padding-top: 2px; }
+    .day-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+    .day-dot { width: 8px; height: 8px; border-radius: 50%; margin: 6px auto 0; }
+    .day-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .day-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .day-chips { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .day-chip { font-size: 11px; color: #555; background: var(--bg3); padding: 2px 8px; border-radius: 20px; }
+    .type-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+    .reset-btn {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: #666; font-size: 12px; padding: 6px 12px;
+      border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── CHAT ── */
+    .chat-page {
+      display: flex; flex-direction: column;
+      height: 100%;
+    }
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .bubble-row {
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .bubble-row.user { justify-content: flex-end; }
+    .coach-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; margin-bottom: 2px;
+    }
+    .bubble {
+      max-width: 80%; padding: 10px 13px;
+      font-size: 14px; line-height: 1.65; white-space: pre-wrap;
+    }
+    .bubble.coach {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 4px 14px 14px 14px; color: #C8C0B8;
+    }
+    .bubble.user {
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      border-radius: 14px 14px 4px 14px; color: #fff;
+    }
+    .thinking-dots { letter-spacing: 4px; font-size: 18px; color: #555; }
+    .quick-row {
+      flex-shrink: 0; display: flex; gap: 6px;
+      overflow-x: auto; padding: 6px 14px;
+      scrollbar-width: none;
+    }
+    .quick-row::-webkit-scrollbar { display: none; }
+    .quick-btn {
+      white-space: nowrap; flex-shrink: 0;
+      background: var(--bg3); border: 1px solid var(--border);
+      color: #777; font-size: 12px; padding: 7px 12px;
+      border-radius: 20px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.15s;
+    }
+    .quick-btn:active { background: rgba(255,111,60,0.1); color: var(--orange); }
+    .chat-input-row {
+      flex-shrink: 0; display: flex; gap: 8px; align-items: flex-end;
+      padding: 8px 14px;
+      padding-bottom: calc(8px + var(--safe-bot));
+      border-top: 1px solid var(--border);
+      background: rgba(13,13,13,0.97);
+    }
+    .chat-textarea {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 11px 13px;
+      color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif;
+      resize: none; line-height: 1.4; max-height: 100px;
+    }
+    .chat-textarea::placeholder { color: #444; }
+    .send-btn {
+      width: 42px; height: 42px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .send-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── CTA BUTTON ── */
+    .cta-btn {
+      display: block; width: 100%;
+      background: linear-gradient(135deg, var(--orange), var(--red));
+      border: none; color: #fff; font-weight: 700; font-size: 15px;
+      padding: 15px; border-radius: 14px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; letter-spacing: 0.01em;
+      margin-top: 20px;
+    }
+    .cta-btn:active { opacity: 0.9; transform: scale(0.99); }
+    .cta-btn.secondary {
+      background: rgba(255,111,60,0.08);
+      border: 1px solid rgba(255,111,60,0.2);
+      color: var(--orange);
+    }
+
+    /* ── CONNECT SCREEN ── */
+    .connect-screen {
+      height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 28px;
+      padding-top: calc(40px + var(--safe-top));
+      padding-bottom: calc(40px + var(--safe-bot));
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 60%, rgba(255,111,60,0.07) 0%, transparent 70%);
+    }
+    .connect-icon { font-size: 70px; margin-bottom: 20px; }
+    .connect-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px; letter-spacing: 0.08em;
+      line-height: 1; color: var(--text); margin-bottom: 12px;
+    }
+    .connect-sub {
+      font-size: 14px; color: #666; line-height: 1.7;
+      max-width: 300px; margin-bottom: 32px;
+    }
+    .strava-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: #FC4C02; color: #fff; font-weight: 700; font-size: 15px;
+      padding: 15px 28px; border-radius: 14px; text-decoration: none;
+      width: 100%; max-width: 320px; letter-spacing: 0.02em;
+    }
+    .hint-text {
+      margin-top: 18px; font-size: 11px; color: #383838; line-height: 1.65;
+      max-width: 300px;
+    }
+
+    /* ── LOADING ── */
+    .loading-screen {
+      height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid #222;
+      border-top-color: var(--orange); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── INSTALL BANNER ── */
+    .install-banner {
+      position: fixed; bottom: calc(60px + var(--safe-bot) + 8px);
+      left: 10px; right: 10px; z-index: 300;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      animation: slideUp 0.3s ease;
+    }
+    .install-banner-icon { font-size: 28px; flex-shrink: 0; }
+    .install-banner-text { flex: 1; }
+    .install-banner-title { font-size: 13px; font-weight: 700; }
+    .install-banner-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .install-banner-close {
+      background: var(--faint); border: none; color: #666;
+      width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+// 1. Pon aquí tu Client ID de Strava
+const STRAVA_CLIENT_ID  = 'YOUR_CLIENT_ID';
+// 2. Pon aquí la URL de tu Cloudflare Worker (la obtienes en el paso 3)
+const WORKER_URL        = 'https://trail-coach.TU-SUBDOMINIO.workers.dev';
+const STRAVA_REDIRECT   = window.location.href.split('?')[0].split('#')[0];
+const STRAVA_SCOPE      = 'read,activity:read_all';
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  token: localStorage.getItem('strava_token'),
+  athlete: null,
+  activities: [],
+  loading: false,
+  tab: 'dashboard',
+  messages: [],
+  thinking: false,
+  weekPlan: null,
+  planLoading: false,
+  selectedAct: null,
+  showInstall: false,
+  installDismissed: localStorage.getItem('install_dismissed'),
+};
+
+// ─── MOCK DATA ───────────────────────────────────────────────────────────────
+const MOCK_ACTS = [
+  { id:1, name:'Mañana en el monte', start_date: new Date(Date.now()-1*864e5).toISOString(), distance:14200, moving_time:5040, total_elevation_gain:620, average_heartrate:152, max_heartrate:178, average_speed:14200/5040, suffer_score:68 },
+  { id:2, name:'Rodaje suave', start_date: new Date(Date.now()-3*864e5).toISOString(), distance:9800, moving_time:3780, total_elevation_gain:180, average_heartrate:138, max_heartrate:158, average_speed:9800/3780, suffer_score:32 },
+  { id:3, name:'Series en cuesta', start_date: new Date(Date.now()-5*864e5).toISOString(), distance:11000, moving_time:3960, total_elevation_gain:480, average_heartrate:168, max_heartrate:189, average_speed:11000/3960, suffer_score:94 },
+  { id:4, name:'Fondo largo de domingo', start_date: new Date(Date.now()-7*864e5).toISOString(), distance:28500, moving_time:11700, total_elevation_gain:1350, average_heartrate:145, max_heartrate:172, average_speed:28500/11700, suffer_score:145 },
+  { id:5, name:'Recuperación activa', start_date: new Date(Date.now()-9*864e5).toISOString(), distance:7200, moving_time:3240, total_elevation_gain:95, average_heartrate:128, max_heartrate:145, average_speed:7200/3240, suffer_score:18 },
+  { id:6, name:'Trail técnico nocturno', start_date: new Date(Date.now()-12*864e5).toISOString(), distance:19800, moving_time:8280, total_elevation_gain:1120, average_heartrate:158, max_heartrate:182, average_speed:19800/8280, suffer_score:112 },
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const mToKm  = m  => (m/1000).toFixed(1);
+const toMin  = s  => Math.round(s/60);
+const dateS  = iso => new Date(iso).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+const gain   = m  => `${Math.round(m)}m`;
+const pace   = sp => { const mpk=(1/sp*1000)/60; const m=Math.floor(mpk); const s=Math.round((mpk-m)*60); return `${m}:${s.toString().padStart(2,'0')}/km`; };
+const intensityOf = s => s > 100 ? {label:'Alta', color:'#FF6F3C'} : s > 50 ? {label:'Media', color:'#F5C842'} : {label:'Baja', color:'#5ECB8A'};
+const typeColor = {easy:'#5ECB8A', tempo:'#F5C842', long:'#FF6F3C', rest:'#444', strength:'#9B7FFF'};
+const typeLabel = {easy:'Suave', tempo:'Ritmo', long:'Largo', rest:'Descanso', strength:'Fuerza'};
+
+// ─── ANTHROPIC ───────────────────────────────────────────────────────────────
+async function askCoach(system, user) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-20250514', max_tokens:1000,
+      system, messages:[{role:'user', content:user}]
+    })
+  });
+  const d = await r.json();
+  return d.content?.map(b=>b.text||'').join('\n') || 'Sin respuesta.';
+}
+
+function buildSystem() {
+  const stats = state.activities.slice(0,10).map(a =>
+    `- ${dateS(a.start_date)}: ${mToKm(a.distance)}km, ${gain(a.total_elevation_gain)}m D+, ${toMin(a.moving_time)}min, FC ${a.average_heartrate||'N/D'} bpm, suffer ${a.suffer_score||'N/D'}`
+  ).join('\n');
+  const km7  = state.activities.filter(a=>Date.now()-new Date(a.start_date)<7*864e5).reduce((s,a)=>s+a.distance,0)/1000;
+  const km30 = state.activities.filter(a=>Date.now()-new Date(a.start_date)<30*864e5).reduce((s,a)=>s+a.distance,0)/1000;
+  return `Eres un entrenador experto en trail running con años de experiencia. Directo, motivador y basado en datos. Hablas en español.
+
+DATOS DEL ATLETA:
+${stats}
+
+RESUMEN: últimos 7d=${km7.toFixed(1)}km | últimos 30d=${km30.toFixed(1)}km | actividades=${state.activities.length}
+
+PRINCIPIOS: periodización 80/20, progresión desnivel ≤10%/semana, recuperación entre sesiones duras.
+Responde conciso (máx 180 palabras). Para planes, estructura por días.`;
+}
+
+// ─── STRAVA ──────────────────────────────────────────────────────────────────
+async function loadData() {
+  state.loading = true; render();
+  if (state.token === 'mock') {
+    await new Promise(r=>setTimeout(r,700));
+    state.athlete = {firstname:'Alex', lastname:'Montaña'};
+    state.activities = MOCK_ACTS;
+  } else {
+    try {
+      const [ath, acts] = await Promise.all([
+        fetch('https://www.strava.com/api/v3/athlete',{headers:{Authorization:`Bearer ${state.token}`}}).then(r=>r.json()),
+        fetch('https://www.strava.com/api/v3/athlete/activities?per_page=15',{headers:{Authorization:`Bearer ${state.token}`}}).then(r=>r.json()),
+      ]);
+      state.athlete = ath;
+      state.activities = Array.isArray(acts) ? acts.filter(a=>a.type==='Run') : [];
+    } catch(e) { console.error(e); }
+  }
+  state.loading = false;
+  // Initial greeting
+  if (state.messages.length === 0) {
+    const km = (state.activities.reduce((s,a)=>s+a.distance,0)/1000).toFixed(0);
+    const dplus = Math.round(state.activities.reduce((s,a)=>s+a.total_elevation_gain,0));
+    state.messages = [{role:'assistant', text:`¡Hola${state.athlete?' '+state.athlete.firstname:''}! 🏔️ Soy tu entrenador personal de trail running.\n\nHe cargado tus últimos ${state.activities.length} entrenamientos: ${km} km con ${dplus} m D+.\n\n¿Qué objetivo tienes ahora mismo? ¿Preparas alguna carrera?`}];
+  }
+  render();
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────────────────
+async function sendMsg(text) {
+  if (!text.trim() || state.thinking) return;
+  state.messages.push({role:'user', text});
+  state.thinking = true; render(); scrollChat();
+  const history = state.messages.map(m=>`${m.role==='user'?'Atleta':'Entrenador'}: ${m.text}`).join('\n\n');
+  const reply = await askCoach(buildSystem(), history+'\n\nEntrenador:');
+  state.messages.push({role:'assistant', text:reply});
+  state.thinking = false; render(); scrollChat();
+}
+
+function scrollChat() {
+  setTimeout(()=>{
+    const c = document.getElementById('chat-messages');
+    if(c) c.scrollTop = c.scrollHeight;
+  }, 50);
+}
+
+// ─── PLAN ────────────────────────────────────────────────────────────────────
+async function genPlan() {
+  state.planLoading = true; render();
+  const prompt = `Genera un plan semanal de trail running basado en los datos del atleta. 
+Responde SOLO con JSON válido sin markdown:
+{"days":[{"day":"Lunes","title":"","type":"easy|tempo|long|rest|strength","duration":"","description":"","km":"","dplus":""}...],"weeklyKm":"","focus":""}`;
+  const raw = await askCoach(buildSystem(), prompt);
+  try {
+    const clean = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    state.weekPlan = JSON.parse(clean);
+  } catch { state.weekPlan = {error: raw}; }
+  state.planLoading = false; render();
+}
+
+// ─── ACTIVITY ANALYSIS ───────────────────────────────────────────────────────
+async function analyzeAct(act) {
+  state.selectedAct = {...act, analysis:'loading'}; render();
+  const prompt = `Analiza este entrenamiento de trail:
+- ${act.name}: ${mToKm(act.distance)}km, ${gain(act.total_elevation_gain)}m D+, ${toMin(act.moving_time)}min, FC ${act.average_heartrate||'N/D'}/${act.max_heartrate||'N/D'} bpm, ritmo ${pace(act.average_speed)}, suffer ${act.suffer_score||'N/D'}
+
+Brevemente: 1) Valoración 2) Puntos fuertes 3) Mejoras 4) Recomendación siguiente sesión`;
+  const analysis = await askCoach(buildSystem(), prompt);
+  state.selectedAct = {...state.selectedAct, analysis}; render();
+}
+
+// ─── OAUTH CALLBACK ──────────────────────────────────────────────────────────
+async function handleOAuthCallback() {
+  const p = new URLSearchParams(window.location.search);
+  const code = p.get('code');
+  if (!code || state.token) return;
+
+  // Limpiar URL antes de hacer nada
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  // Si el Worker no está configurado, usar demo
+  if (WORKER_URL.includes('TU-SUBDOMINIO') || STRAVA_CLIENT_ID === 'YOUR_CLIENT_ID') {
+    localStorage.setItem('strava_token', 'mock');
+    state.token = 'mock';
+    return;
+  }
+
+  // Intercambiar código por token real via Cloudflare Worker
+  state.loading = true; render();
+  try {
+    const res  = await fetch(WORKER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      localStorage.setItem('strava_token', data.access_token);
+      state.token = data.access_token;
+    } else {
+      alert('Error conectando Strava: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) {
+    alert('No se pudo conectar con el servidor. Comprueba tu Worker.');
+  }
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = buildHTML();
+  attachEvents();
+}
+
+function buildHTML() {
+  if (!state.token) return buildConnect();
+  if (state.loading) return buildLoading();
+  return `
+    ${buildInstallBanner()}
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">🏔️</span>
+        <span class="logo-text">TRAIL COACH</span>
+        ${state.token==='mock'?'<span class="demo-badge">DEMO</span>':''}
+      </div>
+      <div class="athlete-pill">
+        <div class="avatar">${state.athlete?.firstname?.[0]||'A'}</div>
+        <span class="athlete-name">${state.athlete?.firstname||'Atleta'}</span>
+      </div>
+    </div>
+    <div class="content" id="main-content">
+      ${state.tab==='dashboard' ? buildDashboard() : ''}
+      ${state.tab==='plan'      ? buildPlan()      : ''}
+      ${state.tab==='chat'      ? buildChat()      : ''}
+    </div>
+    ${state.tab !== 'chat' ? buildTabBar() : buildChatBottom()}
+    ${state.selectedAct ? buildModal() : ''}
+  `;
+}
+
+function buildInstallBanner() {
+  if (state.installDismissed || !state.showInstall || window.navigator.standalone) return '';
+  return `
+    <div class="install-banner">
+      <span class="install-banner-icon">📲</span>
+      <div class="install-banner-text">
+        <div class="install-banner-title">Instalar en iPhone</div>
+        <div class="install-banner-sub">Toca <strong>Compartir</strong> → "Añadir a pantalla de inicio"</div>
+      </div>
+      <button class="install-banner-close" id="close-install">✕</button>
+    </div>`;
+}
+
+function buildConnect() {
+  return `<div class="connect-screen">
+    <div class="connect-icon">🏔️</div>
+    <div class="connect-title">TRAIL<br>COACH AI</div>
+    <p class="connect-sub">Tu entrenador personal de trail running con IA. Conecta Strava para análisis real de tus entrenamientos.</p>
+    <a class="strava-btn" href="https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT)}&scope=${STRAVA_SCOPE}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      Conectar con Strava
+    </a>
+    <button class="cta-btn secondary" style="max-width:320px;margin-top:12px" id="demo-btn">Probar con demo</button>
+    ${STRAVA_CLIENT_ID==='YOUR_CLIENT_ID'?'<p class="hint-text">💡 Para usar tu Strava real, edita el CLIENT_ID en el código y despliega con un backend OAuth.</p>':''}
+  </div>`;
+}
+
+function buildLoading() {
+  return `<div class="loading-screen"><div class="spinner"></div><p style="color:#555;font-size:13px">Cargando tus datos…</p></div>`;
+}
+
+function buildDashboard() {
+  const acts = state.activities;
+  const km7   = acts.filter(a=>Date.now()-new Date(a.start_date)<7*864e5).reduce((s,a)=>s+a.distance,0)/1000;
+  const dplus7= acts.filter(a=>Date.now()-new Date(a.start_date)<7*864e5).reduce((s,a)=>s+a.total_elevation_gain,0);
+  const n7    = acts.filter(a=>Date.now()-new Date(a.start_date)<7*864e5).length;
+  const hrActs= acts.filter(a=>a.average_heartrate);
+  const avgHR = hrActs.length ? Math.round(hrActs.reduce((s,a)=>s+a.average_heartrate,0)/hrActs.length) : '—';
+  return `<div class="page">
+    <div class="section-title">Esta semana</div>
+    <div class="stat-row">
+      <div class="stat-card accent">
+        <div class="stat-label">Kilómetros</div>
+        <div class="stat-value">${km7.toFixed(1)}<span class="stat-unit">km</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Desnivel +</div>
+        <div class="stat-value">${Math.round(dplus7)}<span class="stat-unit">m</span></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">FC media</div>
+        <div class="stat-value">${avgHR}<span class="stat-unit">bpm</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sesiones</div>
+        <div class="stat-value">${n7}<span class="stat-unit"></span></div>
+      </div>
+    </div>
+    <div class="section-title">Últimos entrenamientos</div>
+    ${acts.map(a => {
+      const int = intensityOf(a.suffer_score||0);
+      return `<div class="act-card" data-id="${a.id}">
+        <div class="act-emoji">⛰️</div>
+        <div class="act-info">
+          <div class="act-name">${a.name}</div>
+          <div class="act-meta">${dateS(a.start_date)} · ${mToKm(a.distance)} km · ${gain(a.total_elevation_gain)}m D+</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          <span class="intensity-badge" style="color:${int.color};background:${int.color}18">${int.label}</span>
+          <span style="font-size:11px;color:#444">${toMin(a.moving_time)} min</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function buildPlan() {
+  if (state.planLoading) return `<div class="plan-empty"><div class="spinner"></div><p style="color:#555;font-size:13px;margin-top:16px">Creando tu plan…</p></div>`;
+  if (!state.weekPlan) return `<div class="page"><div class="plan-empty">
+    <div class="plan-empty-icon">📋</div>
+    <div class="plan-empty-title">Plan semanal IA</div>
+    <p class="plan-empty-sub">Analiza tu carga reciente y genera una semana completa adaptada a tu forma actual.</p>
+    <button class="cta-btn" id="gen-plan-btn">Generar plan ✨</button>
+  </div></div>`;
+  if (state.weekPlan.error) return `<div class="page"><div style="background:rgba(255,60,60,.07);border:1px solid rgba(255,60,60,.15);border-radius:12px;padding:14px;font-size:13px;color:#888;white-space:pre-wrap">${state.weekPlan.error}</div><button class="cta-btn secondary" id="gen-plan-btn" style="margin-top:12px">Reintentar</button></div>`;
+  const p = state.weekPlan;
+  return `<div class="page">
+    <div class="plan-summary">
+      <div>
+        <div class="plan-summary-title">Semana planificada</div>
+        <div class="plan-summary-sub">${p.focus||''} · ${p.weeklyKm||'?'} km</div>
+      </div>
+      <button class="reset-btn" id="reset-plan-btn">Nuevo plan</button>
+    </div>
+    ${(p.days||[]).map(d=>`<div class="day-card">
+      <div class="day-left">
+        <div class="day-label">${d.day.slice(0,3).toUpperCase()}</div>
+        <div class="day-dot" style="background:${typeColor[d.type]||'#444'}"></div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px">
+          <span class="day-name">${d.title}</span>
+          <span class="type-pill" style="color:${typeColor[d.type]||'#555'};background:${typeColor[d.type]||'#555'}18">${typeLabel[d.type]||d.type}</span>
+        </div>
+        <div class="day-desc">${d.description}</div>
+        ${d.type!=='rest'?`<div class="day-chips">
+          ${d.duration?`<span class="day-chip">⏱ ${d.duration}</span>`:''}
+          ${d.km?`<span class="day-chip">📍 ${d.km} km</span>`:''}
+          ${d.dplus?`<span class="day-chip">⛰ ${d.dplus}m D+</span>`:''}
+        </div>`:''}
+      </div>
+    </div>`).join('')}
+    <button class="cta-btn secondary" id="plan-to-chat-btn">💬 Preguntar al coach sobre el plan</button>
+  </div>`;
+}
+
+function buildChat() {
+  return `<div class="chat-page">
+    <div class="chat-messages" id="chat-messages">
+      ${state.messages.map(m=>`<div class="bubble-row ${m.role}">
+        ${m.role==='assistant'?'<div class="coach-avatar">🏔</div>':''}
+        <div class="bubble ${m.role==='assistant'?'coach':'user'}">${m.text}</div>
+      </div>`).join('')}
+      ${state.thinking?`<div class="bubble-row"><div class="coach-avatar">🏔</div><div class="bubble coach"><span class="thinking-dots" style="animation:pulse 1s infinite">···</span></div></div>`:''}
+      <div id="chat-end"></div>
+    </div>
+    <div class="quick-row">
+      ${['¿Estoy sobreentrenando?','Mejorar desnivel','Plan 30k','Recuperación'].map(q=>`<button class="quick-btn" data-quick="${q}">${q}</button>`).join('')}
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-textarea" id="chat-input" placeholder="Pregunta al coach…" rows="1"></textarea>
+      <button class="send-btn" id="send-btn">↑</button>
+    </div>
+  </div>`;
+}
+
+function buildChatBottom() {
+  return buildTabBar();
+}
+
+function buildTabBar() {
+  const tabs = [{id:'dashboard',icon:'📊',label:'Dashboard'},{id:'plan',icon:'📅',label:'Plan'},{id:'chat',icon:'💬',label:'Coach IA'}];
+  return `<div class="tabbar">${tabs.map(t=>`<button class="tab ${state.tab===t.id?'active':''}" data-tab="${t.id}">
+    <span class="tab-icon">${t.icon}</span>${t.label}
+  </button>`).join('')}</div>`;
+}
+
+function buildModal() {
+  const a = state.selectedAct;
+  const int = intensityOf(a.suffer_score||0);
+  return `<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title">${a.name}</div>
+      <div class="modal-sub">${dateS(a.start_date)} · Intensidad <span style="color:${int.color}">${int.label}</span></div>
+      <div class="modal-stats">
+        <div class="mini-stat"><div class="mini-stat-label">Distancia</div><div class="mini-stat-val">${mToKm(a.distance)} km</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Desnivel</div><div class="mini-stat-val">${gain(a.total_elevation_gain)}m</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Tiempo</div><div class="mini-stat-val">${toMin(a.moving_time)} min</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">FC media</div><div class="mini-stat-val">${a.average_heartrate||'—'}</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Ritmo</div><div class="mini-stat-val">${pace(a.average_speed)}</div></div>
+        <div class="mini-stat"><div class="mini-stat-label">Suffer</div><div class="mini-stat-val">${a.suffer_score||'—'}</div></div>
+      </div>
+      <div class="analysis-box">${a.analysis==='loading'?'<span style="color:#444">Analizando con IA… ⏳</span>':a.analysis}</div>
+    </div>
+  </div>`;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+function attachEvents() {
+  // Tabs
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+    state.tab = b.dataset.tab; render();
+    if (state.tab==='chat') setTimeout(scrollChat, 100);
+  }));
+
+  // Demo button
+  const demoBtn = document.getElementById('demo-btn');
+  if (demoBtn) demoBtn.addEventListener('click', () => {
+    localStorage.setItem('strava_token','mock');
+    state.token='mock'; loadData();
+  });
+
+  // Activity cards
+  document.querySelectorAll('.act-card').forEach(c => c.addEventListener('click', () => {
+    const id = parseInt(c.dataset.id);
+    const act = state.activities.find(a=>a.id===id);
+    if (act) analyzeAct(act);
+  }));
+
+  // Modal close
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.addEventListener('click', e => { if(e.target===overlay) { state.selectedAct=null; render(); } });
+
+  // Plan buttons
+  const genBtn = document.getElementById('gen-plan-btn');
+  if (genBtn) genBtn.addEventListener('click', genPlan);
+  const resetBtn = document.getElementById('reset-plan-btn');
+  if (resetBtn) resetBtn.addEventListener('click', () => { state.weekPlan=null; render(); });
+  const p2c = document.getElementById('plan-to-chat-btn');
+  if (p2c) p2c.addEventListener('click', () => { state.tab='chat'; render(); setTimeout(scrollChat,100); });
+
+  // Chat
+  const inp = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  if (inp) {
+    inp.addEventListener('input', () => {
+      inp.style.height = 'auto';
+      inp.style.height = Math.min(inp.scrollHeight, 100) + 'px';
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(inp.value); }
+    });
+  }
+  if (sendBtn) sendBtn.addEventListener('click', () => {
+    if (inp) sendMsg(inp.value);
+  });
+  document.querySelectorAll('.quick-btn').forEach(b => b.addEventListener('click', () => sendMsg(b.dataset.quick)));
+  setTimeout(scrollChat, 50);
+
+  // Install banner
+  const closeInstall = document.getElementById('close-install');
+  if (closeInstall) closeInstall.addEventListener('click', () => {
+    localStorage.setItem('install_dismissed','1');
+    state.installDismissed='1'; state.showInstall=false; render();
+  });
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+(async () => {
+  await handleOAuthCallback();
+
+  // Show install banner after 5s if not standalone
+  if (!window.navigator.standalone && !localStorage.getItem('install_dismissed')) {
+    setTimeout(() => { state.showInstall = true; render(); }, 5000);
+  }
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(console.error);
+  }
+
+  if (state.token) {
+    loadData();
+  } else {
+    render();
+  }
+})();
+</script>
+</body>
+</html>
