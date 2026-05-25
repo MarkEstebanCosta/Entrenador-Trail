@@ -453,7 +453,6 @@ let state = {
   messages: [],
   thinking: false,
   weekPlan: null,
-  showSettings: false,
   planLoading: false,
   selectedAct: null,
   showInstall: false,
@@ -622,24 +621,6 @@ async function handleOAuthCallback() {
   }
 }
 
-// ─── LOGOUT / RECONECTAR ─────────────────────────────────────────────────────
-function logout() {
-  localStorage.removeItem('strava_token');
-  state.token      = null;
-  state.athlete    = null;
-  state.activities = [];
-  state.messages   = [];
-  state.weekPlan   = null;
-  state.showSettings = false;
-  render();
-}
-
-function reconnectStrava() {
-  localStorage.removeItem('strava_token');
-  state.showSettings = false;
-  window.location.href = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT)}&scope=${STRAVA_SCOPE}`;
-}
-
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 function render() {
   const app = document.getElementById('app');
@@ -658,12 +639,9 @@ function buildHTML() {
         <span class="logo-text">TRAIL COACH</span>
         ${state.token==='mock'?'<span class="demo-badge">DEMO</span>':''}
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="athlete-pill" id="settings-btn" style="cursor:pointer">
-          <div class="avatar">${state.athlete?.firstname?.[0]||'A'}</div>
-          <span class="athlete-name">${state.athlete?.firstname||'Atleta'}</span>
-          <span style="font-size:12px;color:#555;margin-left:2px">⚙️</span>
-        </div>
+      <div class="athlete-pill">
+        <div class="avatar">${state.athlete?.firstname?.[0]||'A'}</div>
+        <span class="athlete-name">${state.athlete?.firstname||'Atleta'}</span>
       </div>
     </div>
     <div class="content" id="main-content">
@@ -672,50 +650,11 @@ function buildHTML() {
       ${state.tab==='chat'      ? buildChat()      : ''}
     </div>
     ${state.tab !== 'chat' ? buildTabBar() : buildChatBottom()}
-    ${state.selectedAct    ? buildModal()   : ''}
-    ${state.showSettings   ? buildSettings(): ''}
+    ${state.selectedAct ? buildModal() : ''}
   `;
 }
 
-function buildSettings() {
-  const isReal = state.token && state.token !== 'mock';
-  return `
-  <div class="modal-overlay" id="settings-overlay">
-    <div class="modal">
-      <div class="modal-handle"></div>
-      <div class="modal-title">Ajustes</div>
-      <div class="modal-sub" style="margin-bottom:20px">Cuenta y conexiones</div>
-
-      <div style="background:var(--bg3);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--red));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0">
-          ${state.athlete?.firstname?.[0]||'A'}
-        </div>
-        <div>
-          <div style="font-weight:600;font-size:15px">${state.athlete?.firstname||''} ${state.athlete?.lastname||''}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="${isReal?'#FC4C02':'#555'}"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-            ${isReal ? 'Conectado con Strava' : 'Modo demo'}
-          </div>
-        </div>
-      </div>
-
-      <button id="reconnect-btn" style="width:100%;background:rgba(252,76,2,0.1);border:1px solid rgba(252,76,2,0.3);color:#FC4C02;font-weight:600;font-size:14px;padding:13px;border-radius:12px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-        Reconectar Strava
-      </button>
-
-      <button id="logout-btn" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:#888;font-weight:600;font-size:14px;padding:13px;border-radius:12px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px">
-        🚪 Cerrar sesión
-      </button>
-
-      <button id="close-settings-btn" style="width:100%;background:none;border:none;color:var(--muted);font-size:14px;padding:10px;cursor:pointer;font-family:'DM Sans',sans-serif">
-        Cancelar
-      </button>
-    </div>
-  </div>`;
-}
-
-
+function buildInstallBanner() {
   if (state.installDismissed || !state.showInstall || window.navigator.standalone) return '';
   return `
     <div class="install-banner">
@@ -937,18 +876,6 @@ function attachEvents() {
   document.querySelectorAll('.quick-btn').forEach(b => b.addEventListener('click', () => sendMsg(b.dataset.quick)));
   setTimeout(scrollChat, 50);
 
-  // Settings
-  const settingsBtn = document.getElementById('settings-btn');
-  if (settingsBtn) settingsBtn.addEventListener('click', () => { state.showSettings = true; render(); });
-  const settingsOverlay = document.getElementById('settings-overlay');
-  if (settingsOverlay) settingsOverlay.addEventListener('click', e => { if(e.target===settingsOverlay) { state.showSettings=false; render(); } });
-  const closeSettingsBtn = document.getElementById('close-settings-btn');
-  if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', () => { state.showSettings=false; render(); });
-  const logoutBtn = document.getElementById('logout-btn');
-  if (logoutBtn) logoutBtn.addEventListener('click', logout);
-  const reconnectBtn = document.getElementById('reconnect-btn');
-  if (reconnectBtn) reconnectBtn.addEventListener('click', reconnectStrava);
-
   // Install banner
   const closeInstall = document.getElementById('close-install');
   if (closeInstall) closeInstall.addEventListener('click', () => {
@@ -980,3 +907,4 @@ function attachEvents() {
 </script>
 </body>
 </html>
+
